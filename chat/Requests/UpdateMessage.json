@@ -1,0 +1,12 @@
+{
+    "action": "update",
+    "object": "message",
+    "data": {
+        "roomId": 1,
+        "messageId": 1,
+        "content": {
+            "text": "Hi, i'm Oleg222"
+        },
+        "replyToId": 1
+    }
+}

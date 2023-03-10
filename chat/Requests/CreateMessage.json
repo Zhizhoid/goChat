@@ -1,0 +1,12 @@
+{
+    "action": "create",
+    "object": "message",
+    "data": {
+        "content": {
+            "text": "Hi, i'm Oleg"
+        },
+        "senderId": 1,
+        "roomId": 1,
+        "replyToId": null
+    }
+}

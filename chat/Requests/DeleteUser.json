@@ -1,0 +1,7 @@
+{
+    "action": "delete",
+    "object": "user",
+    "data": {
+        "id": 1
+    }
+}

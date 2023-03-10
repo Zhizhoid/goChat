@@ -1,0 +1,7 @@
+{
+    "action": "delete",
+    "object": "room",
+    "data": {
+        "id": 1
+    }
+}

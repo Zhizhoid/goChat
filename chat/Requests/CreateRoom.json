@@ -1,0 +1,7 @@
+{
+    "action": "create",
+    "object": "room",
+    "data": {
+        "name": "Oleg's private room"
+    }
+}
