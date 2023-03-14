@@ -5,13 +5,20 @@ import (
 	"net"
 )
 
-func main() {
-	db := NewDatabase()
+const adress string = ":8080"
 
-	listener, err := net.Listen("tcp", ":8080")
+func main() {
+	db, err := NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("Successfuly opened the db")
+
+	listener, err := net.Listen("tcp", adress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Started listening on %v\n", adress)
 
 	for {
 		conn, err := listener.Accept()
@@ -43,8 +50,8 @@ func handleConnection(conn net.Conn, db *Database) {
 			log.Printf("Wrote %v bytes to %v", n, conn.LocalAddr().String())
 		}
 
-		db.PrintUsers()
-		db.PrintUsernamesToIDs()
-		db.PrintRooms()
+		// db.PrintUsers()
+		// db.PrintUsernamesToIDs()
+		// db.PrintRooms()
 	}
 }

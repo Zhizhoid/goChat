@@ -51,8 +51,7 @@ func main() {
 
 func handleCommand() ([]byte, error) {
 	var action, object string
-	fmt.Scan(&action)
-	fmt.Scan(&object)
+	fmt.Scanf("%v %v\n", &action, &object)
 
 	switch action {
 	case "create":
@@ -124,15 +123,19 @@ func GetUserCreateBytes(username string, password string, name string) []byte {
 
 func handleUserUpdate() []byte {
 	var id uint64
-	var name, password string
+	var username, password, name string
 	fmt.Print("ID: ")
-	fmt.Scan(&id)
-	fmt.Print("Name: ")
-	fmt.Scan(&name)
+	fmt.Scanf("%v\n", &id)
+	fmt.Print("Username: ")
+	fmt.Scanf("%v\n", &username)
 	fmt.Print("Password: ")
-	fmt.Scan(&password)
+	fmt.Scanf("%v\n", &password)
+	fmt.Print("Name: ")
+	fmt.Scanf("%v\n", &name)
 
-	return GetUserUpdateBytes(id, name, password)
+	log.Println("id: ", id, "uName: ", username, "pass: ", password, "name: ", name)
+
+	return GetUserUpdateBytes(id, username, password, name)
 }
 
 type UserUpdate struct {
@@ -140,19 +143,23 @@ type UserUpdate struct {
 	ObjectName string `json:"object"`
 	Data       struct {
 		ID       uint64 `json:"id"`
-		Name     string `json:"name"`
+		Username string `json:"username"`
 		Password string `json:"password"`
+		Name     string `json:"name"`
 	} `json:"data"`
 }
 
-func GetUserUpdateBytes(id uint64, name string, password string) []byte {
+func GetUserUpdateBytes(id uint64, username string, password string, name string) []byte {
 	userUpdate := UserUpdate{
 		Action:     "update",
 		ObjectName: "user",
 	}
 	userUpdate.Data.ID = id
-	userUpdate.Data.Name = name
+	userUpdate.Data.Username = username
 	userUpdate.Data.Password = password
+	userUpdate.Data.Name = name
+
+	log.Println(userUpdate)
 
 	bytes, _ := json.Marshal(userUpdate)
 

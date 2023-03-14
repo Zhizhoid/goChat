@@ -52,8 +52,9 @@ func (action *UserCreate) Process(db *Database) Response {
 type UserUpdate struct {
 	Data struct {
 		ID       uint64 `json:"id"`
-		Name     string `json:"name"`
+		Username string `json:"username"`
 		Password string `json:"password"`
+		Name     string `json:"name"`
 	} `json:"data"`
 }
 
@@ -62,21 +63,13 @@ func (user *User) GetUpdateAction() (DefinedAction, error) {
 }
 
 func (action *UserUpdate) Process(db *Database) Response {
-	fmt.Printf("Updating user: %v %v %v\n", action.Data.ID, action.Data.Name, action.Data.Password)
+	fmt.Printf("Updating user: %v %v %v %v\n", action.Data.ID, action.Data.Username, action.Data.Password, action.Data.Name)
 
-	if action.Data.Name == "" {
-		return userResponse("update", false, "Name cannon be empty")
-	}
-
-	if action.Data.Password == "" {
-		return userResponse("update", false, "Password cannon be empty")
-	}
-
-	err := db.UpdateUser(action.Data.ID, action.Data.Name, action.Data.Password)
+	err := db.UpdateUser(action.Data.ID, action.Data.Username, action.Data.Password, action.Data.Name)
 	if err != nil {
 		return userResponse("update", false, err.Error())
 	}
-	return userResponse("update", true, fmt.Sprintf("User %v successfully updated", action.Data.Name))
+	return userResponse("update", true, fmt.Sprintf("User %v successfully updated", action.Data.Username))
 }
 
 // Delete action
