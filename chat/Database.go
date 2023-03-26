@@ -10,6 +10,7 @@ import (
 
 type Database struct {
 	sqlDB *sql.DB
+	sm    *SessionManager
 }
 
 func NewDatabase() (*Database, error) {
@@ -28,6 +29,8 @@ func NewDatabase() (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.sm = NewSessionManager()
 
 	return &db, nil
 }
@@ -154,13 +157,33 @@ func (db *Database) UpdateUser(id uint64, newUsername string, newPassword string
 }
 
 func (db *Database) DeleteUser(id uint64) error {
+	q := "DELETE FROM users WHERE id = ?;"
+
+	_, err := db.sqlDB.Query(q, id)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (db *Database) LoginUser(username string, password string) (uint64, error) {
+	q := "SELECT id FROM users WHERE Username = ? AND `Password` = ?;"
 
-	return 0, nil
+	rows, err := db.sqlDB.Query(q, username, password)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, errors.New("Invalid username and/or password")
+	}
+
+	var id uint64
+	rows.Scan(&id)
+
+	return db.sm.NewSession(id), nil
 }
 
 // Room

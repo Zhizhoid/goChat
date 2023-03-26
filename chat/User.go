@@ -9,8 +9,6 @@ type User struct {
 	Username string
 	Name     string
 	Password string
-
-	// rooms map[uint64]bool
 }
 
 // Create action
@@ -51,10 +49,10 @@ func (action *UserCreate) Process(db *Database) Response {
 // Update action
 type UserUpdate struct {
 	Data struct {
-		ID       uint64 `json:"id"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
+		SessionID uint64 `json:"sessionId"`
+		Username  string `json:"username"`
+		Password  string `json:"password"`
+		Name      string `json:"name"`
 	} `json:"data"`
 }
 
@@ -63,9 +61,14 @@ func (user *User) GetUpdateAction() (DefinedAction, error) {
 }
 
 func (action *UserUpdate) Process(db *Database) Response {
-	fmt.Printf("Updating user: %v %v %v %v\n", action.Data.ID, action.Data.Username, action.Data.Password, action.Data.Name)
+	id, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
+	if err != nil {
+		return userResponse("update", false, err.Error())
+	}
 
-	err := db.UpdateUser(action.Data.ID, action.Data.Username, action.Data.Password, action.Data.Name)
+	fmt.Printf("Updating user: %v %v %v %v\n", id, action.Data.Username, action.Data.Password, action.Data.Name)
+
+	err = db.UpdateUser(id, action.Data.Username, action.Data.Password, action.Data.Name)
 	if err != nil {
 		return userResponse("update", false, err.Error())
 	}
@@ -75,7 +78,7 @@ func (action *UserUpdate) Process(db *Database) Response {
 // Delete action
 type UserDelete struct {
 	Data struct {
-		ID uint64 `json:"id"`
+		SessionID uint64 `json:"sessionId"`
 	} `json:"data"`
 }
 
@@ -84,9 +87,14 @@ func (user *User) GetDeleteAction() (DefinedAction, error) {
 }
 
 func (action *UserDelete) Process(db *Database) Response {
-	fmt.Printf("Deleting user %v\n", action.Data.ID)
+	id, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
+	if err != nil {
+		return userResponse("delete", false, err.Error())
+	}
 
-	err := db.DeleteUser(action.Data.ID)
+	fmt.Printf("Deleting user %v\n", id)
+
+	err = db.DeleteUser(id)
 	if err != nil {
 		return userResponse("delete", false, err.Error())
 	}
@@ -106,7 +114,7 @@ func (m *User) GetLoginAction() (DefinedAction, error) {
 }
 
 func (action *UserLogin) Process(db *Database) Response {
-	id, err := db.LoginUser(action.Data.Username, action.Data.Password)
+	sessionId, err := db.LoginUser(action.Data.Username, action.Data.Password)
 	if err != nil {
 		return userResponse("login", false, err.Error())
 	}
@@ -115,7 +123,7 @@ func (action *UserLogin) Process(db *Database) Response {
 		Action:     "login",
 		ObjectName: "user",
 		Success:    true,
-		ID:         id,
+		SessionID:  sessionId,
 	}
 }
 

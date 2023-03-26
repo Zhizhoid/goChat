@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
-	"net"
+	"net/http"
 )
 
 type Response struct {
@@ -13,43 +15,84 @@ type Response struct {
 	ObjectName string `json:"object"`
 	Success    bool   `json:"success"`
 	Status     string `json:"status"`
-	ID         uint64 `json:"id"`
+	SessionID  uint64 `json:"sessionId"`
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "127.0.0.1:8080")
-	if err != nil {
-		log.Fatal(err)
-	}
+	var sessionId uint64
 
-	buf := make([]byte, 2000)
+	// conn, err := net.Dial("tcp", "127.0.0.1:8080")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// buf := make([]byte, 2000)
+	// for {
+	// 	bytes, err := handleCommand()
+
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		continue
+	// 	}
+
+	// 	_, err = conn.Write(bytes)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+
+	// 	n, err := conn.Read(buf)
+
+	// 	var response Response
+
+	// 	err = json.Unmarshal(buf[:n], &response)
+	// 	if err != nil {
+	// 		fmt.Println("Something is wrong with the response")
+	// 		continue
+	// 	}
+	// 	fmt.Println(response)
+	// }
+
+	client := &http.Client{}
 	for {
-		bytes, err := handleCommand()
+		b, err := handleCommand(sessionId)
 
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		_, err = conn.Write(bytes)
+		req, err := http.NewRequest("POST", "http://localhost:8080/", bytes.NewBuffer(b))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		n, err := conn.Read(buf)
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		var response Response
 
-		err = json.Unmarshal(buf[:n], &response)
+		err = json.Unmarshal(respBytes, &response)
 		if err != nil {
 			fmt.Println("Something is wrong with the response")
 			continue
 		}
+
+		if response.ObjectName == "user" && response.Action == "login" && response.Success == true {
+			sessionId = response.SessionID
+		}
+
 		fmt.Println(response)
 	}
 }
 
-func handleCommand() ([]byte, error) {
+func handleCommand(sessionId uint64) ([]byte, error) {
 	var action, object string
 	fmt.Scanf("%v %v\n", &action, &object)
 
@@ -64,14 +107,14 @@ func handleCommand() ([]byte, error) {
 	case "update":
 		switch object {
 		case "user":
-			return handleUserUpdate(), nil
+			return handleUserUpdate(sessionId), nil
 		case "room":
 		case "message":
 		}
 	case "delete":
 		switch object {
 		case "user":
-			return handleUserDelete(), nil
+			return handleUserDelete(sessionId), nil
 		}
 	case "login":
 		switch object {
@@ -121,11 +164,8 @@ func GetUserCreateBytes(username string, password string, name string) []byte {
 	return bytes
 }
 
-func handleUserUpdate() []byte {
-	var id uint64
+func handleUserUpdate(sessionId uint64) []byte {
 	var username, password, name string
-	fmt.Print("ID: ")
-	fmt.Scanf("%v\n", &id)
 	fmt.Print("Username: ")
 	fmt.Scanf("%v\n", &username)
 	fmt.Print("Password: ")
@@ -133,28 +173,28 @@ func handleUserUpdate() []byte {
 	fmt.Print("Name: ")
 	fmt.Scanf("%v\n", &name)
 
-	log.Println("id: ", id, "uName: ", username, "pass: ", password, "name: ", name)
+	// log.Println("uName: ", username, "pass: ", password, "name: ", name)
 
-	return GetUserUpdateBytes(id, username, password, name)
+	return GetUserUpdateBytes(sessionId, username, password, name)
 }
 
 type UserUpdate struct {
 	Action     string `json:"action"`
 	ObjectName string `json:"object"`
 	Data       struct {
-		ID       uint64 `json:"id"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
+		SessionID uint64 `json:"sessionId"`
+		Username  string `json:"username"`
+		Password  string `json:"password"`
+		Name      string `json:"name"`
 	} `json:"data"`
 }
 
-func GetUserUpdateBytes(id uint64, username string, password string, name string) []byte {
+func GetUserUpdateBytes(sessionId uint64, username string, password string, name string) []byte {
 	userUpdate := UserUpdate{
 		Action:     "update",
 		ObjectName: "user",
 	}
-	userUpdate.Data.ID = id
+	userUpdate.Data.SessionID = sessionId
 	userUpdate.Data.Username = username
 	userUpdate.Data.Password = password
 	userUpdate.Data.Name = name
@@ -166,29 +206,36 @@ func GetUserUpdateBytes(id uint64, username string, password string, name string
 	return bytes
 }
 
-func handleUserDelete() []byte {
-	var id uint64
-	fmt.Print("ID: ")
-	fmt.Scan(&id)
+func handleUserDelete(sessionId uint64) []byte {
+	var confirmation string
+	fmt.Println("Are you sure?")
+	for confirmation != "Y" && confirmation != "N" {
+		fmt.Println("Type Y or N")
+		fmt.Scan(&confirmation)
+	}
 
-	return GetUserDeleteBytes(id)
+	if confirmation == "N" {
+		return nil
+	}
+
+	return GetUserDeleteBytes(sessionId)
 }
 
 type UserDelete struct {
 	Action     string `json:"action"`
 	ObjectName string `json:"object"`
 	Data       struct {
-		ID uint64 `json:"id"`
+		SessionID uint64 `json:"sessionId"`
 	} `json:"data"`
 }
 
-func GetUserDeleteBytes(id uint64) []byte {
+func GetUserDeleteBytes(sessionId uint64) []byte {
 	userDelete := UserDelete{
 		Action:     "delete",
 		ObjectName: "user",
 	}
 
-	userDelete.Data.ID = id
+	userDelete.Data.SessionID = sessionId
 
 	bytes, _ := json.Marshal(userDelete)
 

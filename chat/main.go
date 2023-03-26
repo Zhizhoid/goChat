@@ -1,19 +1,58 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net"
+	"net/http"
 )
 
 const adress string = ":8080"
 
+var db *Database
+
 func main() {
-	db, err := NewDatabase()
+	var err error
+	db, err = NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Successfuly opened the db")
 
+	handleHTTP()
+
+	// go handleTCP()
+}
+
+func handleHTTP() {
+	http.HandleFunc("/", HTTPHandler)
+
+	err := http.ListenAndServe(adress, nil)
+	log.Fatal(err)
+}
+
+func HTTPHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if req.Method == "POST" {
+		bytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			log.Println("An error occured: ", err)
+		}
+
+		responseBytes := db.HandleRequest(bytes)
+		_, err = w.Write(responseBytes)
+
+		if err != nil {
+			log.Println("An error occured: ", err)
+		}
+
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func handleTCP() {
 	listener, err := net.Listen("tcp", adress)
 	if err != nil {
 		log.Fatal(err)
@@ -27,11 +66,11 @@ func main() {
 			log.Println("An error occured: ", err)
 		}
 
-		go handleConnection(conn, db)
+		go handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn, db *Database) {
+func handleConnection(conn net.Conn) {
 	buf := make([]byte, 2000)
 	for {
 		n, err := conn.Read(buf)
@@ -49,9 +88,5 @@ func handleConnection(conn net.Conn, db *Database) {
 		} else {
 			log.Printf("Wrote %v bytes to %v", n, conn.LocalAddr().String())
 		}
-
-		// db.PrintUsers()
-		// db.PrintUsernamesToIDs()
-		// db.PrintRooms()
 	}
 }
