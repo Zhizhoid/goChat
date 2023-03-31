@@ -4,12 +4,7 @@ import (
 	"fmt"
 )
 
-type User struct {
-	// ID       uint64
-	Username string
-	Name     string
-	Password string
-}
+type User struct{}
 
 // Create action
 type UserCreate struct {
