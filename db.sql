@@ -21,11 +21,14 @@ USE `gochatdb`;
 
 -- Dumping structure for table gochatdb.rooms
 CREATE TABLE IF NOT EXISTS `rooms` (
-  `Name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `Name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `OwnerID` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `Name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Dumping data for table gochatdb.rooms: ~0 rows (approximately)
-DELETE FROM `rooms`;
+-- Data exporting was unselected.
 
 -- Dumping structure for table gochatdb.users
 CREATE TABLE IF NOT EXISTS `users` (
@@ -35,14 +38,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `Name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `Username` (`Username`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
--- Dumping data for table gochatdb.users: ~3 rows (approximately)
-DELETE FROM `users`;
-INSERT INTO `users` (`id`, `Username`, `Password`, `Name`) VALUES
-	(3, 'zhizh', 'pass', 'WASDWASF'),
-	(4, 'zhizhoid', 'qwerty', 'Zhizhoid'),
-	(6, 'was', '123', 'WASDS');
+-- Data exporting was unselected.
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

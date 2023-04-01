@@ -118,6 +118,7 @@ func (action *UserLogin) Process(db *Database) Response {
 		Action:     "login",
 		ObjectName: "user",
 		Success:    true,
+		Status:     "Successfully logged in",
 		SessionID:  sessionId,
 	}
 }

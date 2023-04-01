@@ -33,8 +33,12 @@ func handleHTTP() {
 
 func HTTPHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	if req.Method == "POST" {
+	switch req.Method {
+	case "POST":
 		bytes, err := io.ReadAll(req.Body)
 		if err != nil {
 			log.Println("An error occured: ", err)
@@ -42,14 +46,13 @@ func HTTPHandler(w http.ResponseWriter, req *http.Request) {
 
 		responseBytes := db.HandleRequest(bytes)
 		_, err = w.Write(responseBytes)
+	case "OPTIONS":
 
-		if err != nil {
-			log.Println("An error occured: ", err)
-		}
-
-	} else {
+		w.WriteHeader(http.StatusNoContent)
+	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+
 }
 
 func handleTCP() {

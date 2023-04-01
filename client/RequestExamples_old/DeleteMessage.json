@@ -1,8 +1,0 @@
-{
-    "action": "delete",
-    "object": "message",
-    "data": {
-        "roomId": 1,
-        "messageId": 1
-    }
-}

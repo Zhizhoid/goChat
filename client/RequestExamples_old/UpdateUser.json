@@ -1,8 +1,0 @@
-{
-    "action": "update",
-    "object": "user",
-    "data": {
-        "id": 1,
-        "name": "Oleg2"
-    }
-}

@@ -1,8 +1,0 @@
-{
-    "action": "create",
-    "object": "user",
-    "data": {
-        "name": "Oleg",
-        "password": "oleg2011"
-    }
-}

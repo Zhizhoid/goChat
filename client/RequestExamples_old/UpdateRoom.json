@@ -1,8 +1,0 @@
-{
-    "action": "update",
-    "object": "room",
-    "data": {
-        "id": 1,
-        "name": "Oleg's public room"
-    }
-}
