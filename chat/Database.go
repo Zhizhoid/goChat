@@ -2,11 +2,19 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 
 	"github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/argon2"
 )
+
+const SALT_LENGTH = 30
+const PASSWORDHASH_LENGTH uint32 = 60
+const ARGON_TIME uint32 = 1
+const ARGON_MEMORY uint32 = 47104
+const ARGON_THREADS uint8 = 1
 
 type Database struct {
 	sqlDB *sql.DB
@@ -60,6 +68,8 @@ func (db *Database) HandleRequest(requestBytes []byte) (responseBytes []byte) {
 		defAction, err = object.GetCreateAction()
 	case "update":
 		defAction, err = object.GetUpdateAction()
+	case "read":
+		defAction, err = object.GetReadAction()
 	case "delete":
 		defAction, err = object.GetDeleteAction()
 	case "login":
@@ -101,8 +111,12 @@ func unknownFailedResponseBytes(status string) (responseBytes []byte) {
 
 // User
 func (db *Database) AddUser(username string, password string, name string) error {
-	q := "INSERT INTO users(Username, `Password`, `Name`) VALUES(?, ?, ?);"
-	_, err := db.sqlDB.Exec(q, username, password, name)
+	q := "INSERT INTO users(Username, PasswordHash, Salt, `Name`) VALUES(?, ?, ?, ?);"
+
+	salt, err := GenerateSalt(SALT_LENGTH)
+	passwordHash := argon2.IDKey([]byte(password), salt, ARGON_TIME, ARGON_MEMORY, ARGON_THREADS, PASSWORDHASH_LENGTH)
+
+	_, err = db.sqlDB.Exec(q, username, base64.StdEncoding.EncodeToString(passwordHash), base64.StdEncoding.EncodeToString(salt), name)
 	if err != nil {
 		return err
 	}
@@ -110,7 +124,12 @@ func (db *Database) AddUser(username string, password string, name string) error
 	return nil
 }
 
-func (db *Database) UpdateUser(id uint64, newUsername string, newPassword string, newName string) error {
+func (db *Database) UpdateUser(sessionId uint64, newUsername string, newPassword string, newName string) error { // TOTEST
+	id, err := db.sm.GetUserIDFromSession(sessionId)
+	if err != nil {
+		return err
+	}
+
 	q := "UPDATE users SET"
 
 	everyFieldIsEmpty := true
@@ -126,8 +145,16 @@ func (db *Database) UpdateUser(id uint64, newUsername string, newPassword string
 		if !everyFieldIsEmpty {
 			q += ","
 		}
-		q += " `Password` = ?"
-		queryArgs = append(queryArgs, newPassword)
+		q += " PasswordHash = ?, Salt = ?"
+
+		salt, err := GenerateSalt(SALT_LENGTH)
+		if err != nil {
+			return err
+		}
+
+		newPasswordHash := argon2.IDKey([]byte(newPassword), salt, ARGON_TIME, ARGON_MEMORY, ARGON_THREADS, PASSWORDHASH_LENGTH)
+
+		queryArgs = append(queryArgs, base64.StdEncoding.EncodeToString(newPasswordHash), base64.StdEncoding.EncodeToString(salt))
 		everyFieldIsEmpty = false
 	}
 
@@ -147,7 +174,7 @@ func (db *Database) UpdateUser(id uint64, newUsername string, newPassword string
 	q += " WHERE id = ?;"
 	queryArgs = append(queryArgs, id)
 
-	_, err := db.sqlDB.Query(q, queryArgs...)
+	_, err = db.sqlDB.Query(q, queryArgs...)
 	if err != nil {
 		return err
 	}
@@ -155,9 +182,14 @@ func (db *Database) UpdateUser(id uint64, newUsername string, newPassword string
 	return nil
 }
 
-func (db *Database) DeleteUser(id uint64) error {
+func (db *Database) DeleteUser(sessionId uint64) error {
+	id, err := db.sm.GetUserIDFromSession(sessionId)
+	if err != nil {
+		return err
+	}
+
 	q := "DELETE FROM users WHERE id = ?;"
-	_, err := db.sqlDB.Query(q, id)
+	_, err = db.sqlDB.Query(q, id)
 	if err != nil {
 		return err
 	}
@@ -166,23 +198,58 @@ func (db *Database) DeleteUser(id uint64) error {
 }
 
 func (db *Database) LoginUser(username string, password string) (uint64, error) {
-	q := "SELECT id FROM users WHERE Username = ? AND `Password` = ?;"
-	row := db.sqlDB.QueryRow(q, username, password)
+	q := "SELECT id, Salt, PasswordHash FROM users WHERE Username = ?;"
+	row := db.sqlDB.QueryRow(q, username)
 
-	var id uint64
-	err := row.Scan(&id)
+	var (
+		id                       uint64
+		salt64, dbPasswordHash64 string
+	)
+
+	err := row.Scan(&id, &salt64, &dbPasswordHash64)
 	if err != nil {
-		// return 0, errors.New("Invalid username and/or password")
+		// return 0, errors.New("Username may be invalid")
 		return 0, err
 	}
 
-	return db.sm.NewSession(id), nil
+	salt, err := base64.StdEncoding.DecodeString(salt64)
+	if err != nil {
+		return 0, err
+	}
+
+	inputPasswordHash := argon2.IDKey([]byte(password), salt, ARGON_TIME, ARGON_MEMORY, ARGON_THREADS, PASSWORDHASH_LENGTH)
+
+	dbPasswordHash, err := base64.StdEncoding.DecodeString(dbPasswordHash64)
+	if err != nil {
+		return 0, err
+	}
+
+	for i := 0; i < int(PASSWORDHASH_LENGTH); i++ {
+		if inputPasswordHash[i] != dbPasswordHash[i] {
+			return 0, errors.New("Invalid password")
+		}
+	}
+
+	return db.sm.NewSession(id)
+}
+
+func (db *Database) ReadUser(username string) (name string, err error) {
+	return "", errors.New("Unimplemented")
+}
+
+func (db *Database) ReadUserRooms(username string) (rooms []string, err error) {
+	return nil, errors.New("Unimplemented")
 }
 
 // Room
-func (db *Database) AddRoom(name string, ownerId uint64) error {
+func (db *Database) AddRoom(name string, ownerSessionId uint64) error {
+	ownerId, err := db.sm.GetUserIDFromSession(ownerSessionId)
+	if err != nil {
+		return err
+	}
+
 	q := "INSERT INTO rooms(`Name`, OwnerID) VALUES(?, ?);"
-	_, err := db.sqlDB.Exec(q, name, ownerId)
+	_, err = db.sqlDB.Exec(q, name, ownerId)
 	if err != nil {
 		return err
 	}
@@ -210,13 +277,18 @@ func (db *Database) DeleteRoom(id uint64) error {
 	return nil
 }
 
-func (db *Database) LoginRoom(roomName string, userId uint64) error {
+func (db *Database) LoginRoom(roomName string, sessionID uint64) error {
+	userId, err := db.sm.GetUserIDFromSession(sessionID)
+	if err != nil {
+		return err
+	}
+
 	//Getting room ID
 	q := "SELECT id FROM rooms WHERE `Name` = ?;"
 	row := db.sqlDB.QueryRow(q, roomName)
 
 	var roomId uint64
-	err := row.Scan(roomId)
+	err = row.Scan(roomId)
 	if err != nil {
 		return err
 	}

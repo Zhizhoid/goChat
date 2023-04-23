@@ -1,12 +1,14 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
-	"math/rand"
+	"math/big"
 	"time"
 )
 
-const LARGE_NUMBER int64 = 100000000000000
+const LARGE_NUMBER_1 uint64 = 100000000000000
+const LARGE_NUMBER_2 = 899999999999999
 const SESSION_LIFETIME_SECONDS time.Duration = 30 * 60000000 // 30 minutes in nanoseconds
 
 type Session struct {
@@ -25,11 +27,16 @@ func NewSessionManager() *SessionManager {
 	return &sm
 }
 
-func (sm *SessionManager) NewSession(userId uint64) uint64 {
+func (sm *SessionManager) NewSession(userId uint64) (uint64, error) {
 	var sessionId uint64
 
 	for exists := true; exists; {
-		sessionId = uint64(LARGE_NUMBER + rand.Int63n(899999999999999))
+		addition, err := rand.Int(rand.Reader, big.NewInt(LARGE_NUMBER_2))
+		if err != nil {
+			return 0, err
+		}
+
+		sessionId = LARGE_NUMBER_1 + addition.Uint64()
 		_, exists = sm.sessions[sessionId]
 	}
 
@@ -38,7 +45,7 @@ func (sm *SessionManager) NewSession(userId uint64) uint64 {
 		Timeout: time.Now().Add(SESSION_LIFETIME_SECONDS),
 	}
 
-	return sessionId
+	return sessionId, nil
 }
 
 func (sm *SessionManager) GetUserIDFromSession(sessionId uint64) (uint64, error) {

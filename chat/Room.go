@@ -65,16 +65,11 @@ func (room *Room) GetCreateAction() (DefinedAction, error) {
 }
 
 func (action *RoomCreate) Process(db *Database) Response {
-	userId, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
-	if err != nil {
-		return roomResponse("create", false, err.Error())
-	}
-
 	if action.Data.Name == "" {
 		return roomResponse("create", false, "Creating room failed, room name cannon be empty")
 	}
 
-	err = db.AddRoom(action.Data.Name, userId)
+	err := db.AddRoom(action.Data.Name, action.Data.SessionID)
 	if err != nil {
 		return roomResponse("create", false, err.Error())
 	}
@@ -143,17 +138,27 @@ func (m *Room) GetLoginAction() (DefinedAction, error) {
 }
 
 func (action *RoomLogin) Process(db *Database) Response {
-	userId, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
-	if err != nil {
-		return roomResponse("login", false, err.Error())
-	}
-
-	err = db.LoginRoom(action.Data.RoomName, userId)
+	err := db.LoginRoom(action.Data.RoomName, action.Data.SessionID)
 	if err != nil {
 		return roomResponse("login", false, err.Error())
 	}
 
 	return roomResponse("login", true, "Successfully joined the room")
+}
+
+// Read action
+type RoomRead struct {
+	Data struct {
+		ID uint64 `json:"id"`
+	} `json:"data"`
+}
+
+func (action *Room) GetReadAction() (DefinedAction, error) {
+	return &RoomRead{}, nil
+}
+
+func (action *RoomRead) Process(db *Database) Response {
+	return Response{}
 }
 
 // OTHER

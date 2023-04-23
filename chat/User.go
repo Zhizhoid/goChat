@@ -20,8 +20,6 @@ func (user *User) GetCreateAction() (DefinedAction, error) {
 }
 
 func (action *UserCreate) Process(db *Database) Response {
-	fmt.Printf("Creating user: %s\n", action.Data.Name)
-
 	if action.Data.Username == "" {
 		return userResponse("create", false, "Username cannon be empty")
 	}
@@ -56,14 +54,7 @@ func (user *User) GetUpdateAction() (DefinedAction, error) {
 }
 
 func (action *UserUpdate) Process(db *Database) Response {
-	id, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
-	if err != nil {
-		return userResponse("update", false, err.Error())
-	}
-
-	fmt.Printf("Updating user: %v %v %v %v\n", id, action.Data.Username, action.Data.Password, action.Data.Name)
-
-	err = db.UpdateUser(id, action.Data.Username, action.Data.Password, action.Data.Name)
+	err := db.UpdateUser(action.Data.SessionID, action.Data.Username, action.Data.Password, action.Data.Name)
 	if err != nil {
 		return userResponse("update", false, err.Error())
 	}
@@ -82,14 +73,7 @@ func (user *User) GetDeleteAction() (DefinedAction, error) {
 }
 
 func (action *UserDelete) Process(db *Database) Response {
-	id, err := db.sm.GetUserIDFromSession(action.Data.SessionID)
-	if err != nil {
-		return userResponse("delete", false, err.Error())
-	}
-
-	fmt.Printf("Deleting user %v\n", id)
-
-	err = db.DeleteUser(id)
+	err := db.DeleteUser(action.Data.SessionID)
 	if err != nil {
 		return userResponse("delete", false, err.Error())
 	}
@@ -120,6 +104,57 @@ func (action *UserLogin) Process(db *Database) Response {
 		Success:    true,
 		Status:     "Successfully logged in",
 		SessionID:  sessionId,
+	}
+}
+
+// Read action
+type UserRead struct {
+	Data struct {
+		Username    string `json:"username"`
+		GetRoomList bool   `json:"getRoomList"`
+	} `json:"data"`
+}
+
+func (action *User) GetReadAction() (DefinedAction, error) {
+	return &UserRead{}, nil
+}
+
+func (action *UserRead) Process(db *Database) Response {
+	if !action.Data.GetRoomList {
+		name, err := db.ReadUser(action.Data.Username)
+		if err != nil {
+			return userResponse("read", false, err.Error())
+		}
+
+		return Response{
+			Action:     "read",
+			ObjectName: "user",
+			Success:    true,
+			Status:     "Successfully read user",
+			ReadResponse: ReadResponse{
+				UserReadResponse: UserReadResponse{
+					Name:     name,
+					Username: action.Data.Username,
+				},
+			},
+		}
+	}
+
+	rooms, err := db.ReadUserRooms(action.Data.Username)
+	if err != nil {
+		return userResponse("read", false, err.Error())
+	}
+
+	return Response{
+		Action:     "read",
+		ObjectName: "user",
+		Success:    true,
+		Status:     "Successfully read user rooms",
+		ReadResponse: ReadResponse{
+			UserReadResponse: UserReadResponse{
+				Rooms: rooms,
+			},
+		},
 	}
 }
 

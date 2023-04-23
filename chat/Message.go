@@ -100,6 +100,22 @@ func (m *Message) GetLoginAction() (DefinedAction, error) {
 	return nil, errors.New("No login action")
 }
 
+// Read action
+type MessageRead struct {
+	Data struct {
+		RoomID    uint64 `json:"roomId"`
+		MessageID uint64 `json:"messageId"`
+	} `json:"data"`
+}
+
+func (action *Message) GetReadAction() (DefinedAction, error) {
+	return &MessageRead{}, nil
+}
+
+func (action *MessageRead) Process(db *Database) Response {
+	return Response{}
+}
+
 // OTHER
 func messageResponse(action string, success bool, status string) Response {
 	return Response{

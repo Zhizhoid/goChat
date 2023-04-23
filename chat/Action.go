@@ -12,7 +12,7 @@ type DefinedAction interface {
 type JsonObject interface {
 	GetCreateAction() (DefinedAction, error)
 	GetUpdateAction() (DefinedAction, error)
-	// GetReadAction() (DefinedAction, error)
+	GetReadAction() (DefinedAction, error)
 	GetDeleteAction() (DefinedAction, error)
 	GetLoginAction() (DefinedAction, error)
 }

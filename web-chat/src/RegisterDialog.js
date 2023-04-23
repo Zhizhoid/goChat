@@ -14,13 +14,18 @@ import DialogTitle from '@mui/material/DialogTitle';
 import PropTypes from 'prop-types';
 
 //Local imports
-import RegisterDialog from './RegisterDialog';
+
 
 export default function LoginDialog(props) {
-	const [open, setOpen] = React.useState(true);
+	const [open, setOpen] = React.useState(false);
+
+    const [name, setName] = React.useState("");
 	const [username, setUsername] = React.useState("");
 	const [password, setPassword] = React.useState("");
-	const [loggedIn, setLoggedIn] = React.useState(false);
+
+    function nameChange(event) {
+        setName(event.target.value);
+    }
 
 	function usernameChange(event) {
 		setUsername(event.target.value);
@@ -38,13 +43,14 @@ export default function LoginDialog(props) {
 		setOpen(false);
 	};
 
-	function handleLogin() {
+	function handleRegistration() {
 		let actn = {
-			action: "login",
+			action: "create",
 			object: "user",
 			data: {
 				username: username,
 				password: password,
+                name: name,
 			}
 		}
 
@@ -60,9 +66,8 @@ export default function LoginDialog(props) {
 			referrerPolicy: 'no-referrer', 
 			body: JSON.stringify(actn),
 		}).then(resp => {
-			//The place where you should check if request was successfull and read info about response like headers
 			if (!resp.ok) {
-				alert("Error occured during login");
+				alert("Error occured during registration");
 			}
 
 			return resp.json();
@@ -70,9 +75,9 @@ export default function LoginDialog(props) {
 			console.log(data);
 			
 			if(!data.success) {
-				alert("Login failed\nMaybe the username or the password is invalid");
+				alert("Registration failed\nMaybe the username or the password are already used or empty");
 			} else {
-				setLoggedIn(true);
+				alert("Registered successfully")
 			}
 
 			setOpen(false);
@@ -81,17 +86,25 @@ export default function LoginDialog(props) {
 
 	return (
 		<>
-			{loggedIn ? null : <RegisterDialog backendIP={props.backendIP}/>}
-
 			<Button variant="standard" onClick={handleOpen}>
-				{loggedIn ? username : "Log in"}
+				Register
 			</Button>
 			<Dialog open={open} onClose={handleClose}>
-				<DialogTitle>Login</DialogTitle>
+				<DialogTitle>Registration</DialogTitle>
 				<DialogContent>
 					<DialogContentText>
 						Enter your credentials
 					</DialogContentText>
+                    <TextField
+						autoFocus
+						margin="dense"
+						label="Name"
+						type="text"
+						fullWidth
+						variant="standard"
+						value={name}
+						onChange={nameChange}
+					/>
 					<TextField
 						autoFocus
 						margin="dense"
@@ -114,7 +127,7 @@ export default function LoginDialog(props) {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={handleClose}>Cancel</Button>
-					<Button onClick={handleLogin}>Log in</Button>
+					<Button onClick={handleRegistration}>Register</Button>
 				</DialogActions>
 			</Dialog>
 		</>

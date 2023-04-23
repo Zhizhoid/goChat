@@ -20,8 +20,6 @@ func main() {
 	log.Println("Successfuly opened the db")
 
 	handleHTTP()
-
-	// go handleTCP()
 }
 
 func handleHTTP() {
