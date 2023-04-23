@@ -1,4 +1,4 @@
-package main
+package database
 
 type Content struct {
 	Text string `json:"text"`

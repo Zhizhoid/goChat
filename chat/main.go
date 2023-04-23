@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/database"
 	"io"
 	"log"
 	"net"
@@ -9,11 +10,11 @@ import (
 
 const adress string = ":8080"
 
-var db *Database
+var db *database.Database
 
 func main() {
 	var err error
-	db, err = NewDatabase()
+	db, err = database.NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package database
 
 type Action struct {
 	Action     string `json:"action"`

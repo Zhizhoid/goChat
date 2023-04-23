@@ -1,11 +1,11 @@
-package main
+package safety
 
 import (
 	"crypto/rand"
 	"math/big"
 )
 
-func GenerateSalt(length int) ([]byte, error) {
+func RandomString(length int) ([]byte, error) {
 	salt := make([]byte, length)
 	for i := 0; i < length; i++ {
 		symbol, err := rand.Int(rand.Reader, big.NewInt(256))

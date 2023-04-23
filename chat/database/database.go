@@ -1,6 +1,8 @@
-package main
+package database
 
 import (
+	"chat/safety"
+
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -10,7 +12,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-const SALT_LENGTH = 30
+const SALT_LENGTH int = 30
 const PASSWORDHASH_LENGTH uint32 = 60
 const ARGON_TIME uint32 = 1
 const ARGON_MEMORY uint32 = 47104
@@ -113,7 +115,7 @@ func unknownFailedResponseBytes(status string) (responseBytes []byte) {
 func (db *Database) AddUser(username string, password string, name string) error {
 	q := "INSERT INTO users(Username, PasswordHash, Salt, `Name`) VALUES(?, ?, ?, ?);"
 
-	salt, err := GenerateSalt(SALT_LENGTH)
+	salt, err := safety.RandomString(SALT_LENGTH)
 	passwordHash := argon2.IDKey([]byte(password), salt, ARGON_TIME, ARGON_MEMORY, ARGON_THREADS, PASSWORDHASH_LENGTH)
 
 	_, err = db.sqlDB.Exec(q, username, base64.StdEncoding.EncodeToString(passwordHash), base64.StdEncoding.EncodeToString(salt), name)
@@ -147,7 +149,7 @@ func (db *Database) UpdateUser(sessionId uint64, newUsername string, newPassword
 		}
 		q += " PasswordHash = ?, Salt = ?"
 
-		salt, err := GenerateSalt(SALT_LENGTH)
+		salt, err := safety.RandomString(SALT_LENGTH)
 		if err != nil {
 			return err
 		}
