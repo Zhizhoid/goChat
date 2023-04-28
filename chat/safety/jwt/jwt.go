@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 )
@@ -70,23 +71,43 @@ func IsValid(token, key string) (bool, error) {
 	return inputSignature64 == validSignature64, nil
 }
 
-func IsExpired(token string) (bool, error) {
+func Decode(token string) (expired bool, username string, err error) {
 	firstDotPos := strings.IndexByte(token, '.')
 	lastDotPos := strings.LastIndexByte(token, '.')
 
 	p64 := token[firstDotPos+1 : lastDotPos]
 	pJson, err := base64.RawURLEncoding.DecodeString(p64)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	var p payload
 	err = json.Unmarshal(pJson, &p)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	return time.Now().After(p.Exp), nil
+	return time.Now().After(p.Exp), p.Username, nil
+}
+
+func SimpleDecode(token string, key string) (username string, err error) {
+	valid, err := IsValid(token, key)
+	if err != nil {
+		return "", err
+	}
+	if !valid {
+		return "", errors.New("Invalid token")
+	}
+
+	expired, username, err := Decode(token)
+	if err != nil {
+		return "", err
+	}
+	if expired {
+		return "", errors.New("Expired token")
+	}
+
+	return
 }
 
 func GenerateKey() {

@@ -71,9 +71,12 @@ export default function LoginDialog(props) {
 			
 			if(!data.success) {
 				alert("Login failed\nMaybe the username or the password is invalid");
-			} else {
-				setLoggedIn(true);
+				setOpen(false);
+				return;
 			}
+
+			setLoggedIn(true);
+			props.setToken(data.token);
 
 			setOpen(false);
 		});
@@ -123,4 +126,5 @@ export default function LoginDialog(props) {
 
 LoginDialog.propTypes = {
     backendIP: PropTypes.any.isRequired,
+	setToken: PropTypes.func.isRequired
 };

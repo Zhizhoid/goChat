@@ -55,8 +55,8 @@ func (room *Room) DeleteMessage(messageId uint64) error {
 // Create action TOCHECK
 type RoomCreate struct {
 	Data struct {
-		SessionID uint64 `json:"sessionId"`
-		Name      string `json:"name"`
+		Token string `json:"token"`
+		Name  string `json:"name"`
 	} `json:"data"`
 }
 
@@ -69,7 +69,7 @@ func (action *RoomCreate) Process(db *Database) Response {
 		return roomResponse("create", false, "Creating room failed, room name cannon be empty")
 	}
 
-	err := db.AddRoom(action.Data.Name, action.Data.SessionID)
+	err := db.AddRoom(action.Data.Name, action.Data.Token)
 	if err != nil {
 		return roomResponse("create", false, err.Error())
 	}
@@ -128,8 +128,8 @@ func (action *RoomDelete) Process(db *Database) Response {
 // Login action
 type RoomLogin struct {
 	Data struct {
-		SessionID uint64 `json:"sessionId"`
-		RoomName  string `json:"roomName"`
+		Token    string `json:"token"`
+		RoomName string `json:"roomName"`
 	} `json:"data"`
 }
 
@@ -138,7 +138,7 @@ func (m *Room) GetLoginAction() (DefinedAction, error) {
 }
 
 func (action *RoomLogin) Process(db *Database) Response {
-	err := db.LoginRoom(action.Data.RoomName, action.Data.SessionID)
+	err := db.LoginRoom(action.Data.RoomName, action.Data.Token)
 	if err != nil {
 		return roomResponse("login", false, err.Error())
 	}

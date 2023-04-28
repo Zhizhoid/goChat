@@ -2,6 +2,7 @@ package database
 
 import (
 	"chat/safety"
+	"chat/safety/jwt"
 
 	"database/sql"
 	"encoding/base64"
@@ -18,9 +19,11 @@ const ARGON_TIME uint32 = 1
 const ARGON_MEMORY uint32 = 47104
 const ARGON_THREADS uint8 = 1
 
+const JWT_KEY string = "secret_key" //PLACEHOLDER
+
 type Database struct {
 	sqlDB *sql.DB
-	sm    *SessionManager
+	// sm    *SessionManager
 }
 
 func NewDatabase() (*Database, error) {
@@ -40,7 +43,7 @@ func NewDatabase() (*Database, error) {
 		return nil, err
 	}
 
-	db.sm = NewSessionManager()
+	// db.sm = NewSessionManager()
 
 	return &db, nil
 }
@@ -126,8 +129,8 @@ func (db *Database) AddUser(username string, password string, name string) error
 	return nil
 }
 
-func (db *Database) UpdateUser(sessionId uint64, newUsername string, newPassword string, newName string) error { // TOTEST
-	id, err := db.sm.GetUserIDFromSession(sessionId)
+func (db *Database) UpdateUser(token string, newUsername string, newPassword string, newName string) error { // TOTEST
+	username, err := jwt.SimpleDecode(token, JWT_KEY)
 	if err != nil {
 		return err
 	}
@@ -173,8 +176,8 @@ func (db *Database) UpdateUser(sessionId uint64, newUsername string, newPassword
 		return errors.New("At least one field should be changed")
 	}
 
-	q += " WHERE id = ?;"
-	queryArgs = append(queryArgs, id)
+	q += " WHERE Username = ?;"
+	queryArgs = append(queryArgs, username)
 
 	_, err = db.sqlDB.Query(q, queryArgs...)
 	if err != nil {
@@ -184,14 +187,14 @@ func (db *Database) UpdateUser(sessionId uint64, newUsername string, newPassword
 	return nil
 }
 
-func (db *Database) DeleteUser(sessionId uint64) error {
-	id, err := db.sm.GetUserIDFromSession(sessionId)
+func (db *Database) DeleteUser(token string) error {
+	username, err := jwt.SimpleDecode(token, JWT_KEY)
 	if err != nil {
 		return err
 	}
 
-	q := "DELETE FROM users WHERE id = ?;"
-	_, err = db.sqlDB.Query(q, id)
+	q := "DELETE FROM users WHERE Username = ?;"
+	_, err = db.sqlDB.Query(q, username)
 	if err != nil {
 		return err
 	}
@@ -199,40 +202,39 @@ func (db *Database) DeleteUser(sessionId uint64) error {
 	return nil
 }
 
-func (db *Database) LoginUser(username string, password string) (uint64, error) {
-	q := "SELECT id, Salt, PasswordHash FROM users WHERE Username = ?;"
+func (db *Database) LoginUser(username string, password string) (string, error) {
+	q := "SELECT Salt, PasswordHash FROM users WHERE Username = ?;"
 	row := db.sqlDB.QueryRow(q, username)
 
 	var (
-		id                       uint64
 		salt64, dbPasswordHash64 string
 	)
 
-	err := row.Scan(&id, &salt64, &dbPasswordHash64)
+	err := row.Scan(&salt64, &dbPasswordHash64)
 	if err != nil {
 		// return 0, errors.New("Username may be invalid")
-		return 0, err
+		return "", err
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(salt64)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	inputPasswordHash := argon2.IDKey([]byte(password), salt, ARGON_TIME, ARGON_MEMORY, ARGON_THREADS, PASSWORDHASH_LENGTH)
 
 	dbPasswordHash, err := base64.StdEncoding.DecodeString(dbPasswordHash64)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	for i := 0; i < int(PASSWORDHASH_LENGTH); i++ {
 		if inputPasswordHash[i] != dbPasswordHash[i] {
-			return 0, errors.New("Invalid password")
+			return "", errors.New("Invalid password")
 		}
 	}
 
-	return db.sm.NewSession(id)
+	return jwt.GenerateJWT(username, SESSION_LIFETIME_SECONDS, JWT_KEY)
 }
 
 func (db *Database) ReadUser(username string) (name string, err error) {
@@ -244,14 +246,14 @@ func (db *Database) ReadUserRooms(username string) (rooms []string, err error) {
 }
 
 // Room
-func (db *Database) AddRoom(name string, ownerSessionId uint64) error {
-	ownerId, err := db.sm.GetUserIDFromSession(ownerSessionId)
+func (db *Database) AddRoom(name string, ownerToken string) error {
+	ownerUsername, err := jwt.SimpleDecode(ownerToken, JWT_KEY)
 	if err != nil {
 		return err
 	}
 
-	q := "INSERT INTO rooms(`Name`, OwnerID) VALUES(?, ?);"
-	_, err = db.sqlDB.Exec(q, name, ownerId)
+	q := "INSERT INTO rooms(`Name`, OwnerUsername) VALUES(?, ?);"
+	_, err = db.sqlDB.Exec(q, name, ownerUsername)
 	if err != nil {
 		return err
 	}
@@ -279,8 +281,8 @@ func (db *Database) DeleteRoom(id uint64) error {
 	return nil
 }
 
-func (db *Database) LoginRoom(roomName string, sessionID uint64) error {
-	userId, err := db.sm.GetUserIDFromSession(sessionID)
+func (db *Database) LoginRoom(roomName string, token string) error {
+	username, err := jwt.SimpleDecode(token, JWT_KEY)
 	if err != nil {
 		return err
 	}
@@ -296,8 +298,8 @@ func (db *Database) LoginRoom(roomName string, sessionID uint64) error {
 	}
 
 	//Creating new row in users_rooms
-	q = "INSERT INTO users_rooms(UserID, RoomID) VALUES(?, ?);"
-	_, err = db.sqlDB.Exec(q, userId, roomId)
+	q = "INSERT INTO users_rooms(Username, RoomID) VALUES(?, ?);"
+	_, err = db.sqlDB.Exec(q, username, roomId)
 	if err != nil {
 		return err
 	}

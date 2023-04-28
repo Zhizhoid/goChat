@@ -6,7 +6,7 @@ type Response struct {
 	Success      bool    `json:"success"`
 	Status       string  `json:"status"`
 	Message      Message `json:"message"`
-	SessionID    uint64  `json:"sessionId"`
+	Token        string  `json:"token"`
 	ReadResponse `json:"read"`
 }
 

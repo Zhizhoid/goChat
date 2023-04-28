@@ -83,6 +83,7 @@ const emptyRoom = {
 }
 
 export default function MainScreen() {
+    const [token, setToken] = React.useState("");
     const [roomList, setRoomList] = React.useState([]);
     const [activeRoom, setActiveRoom] = React.useState(emptyRoom);
 
@@ -104,7 +105,7 @@ export default function MainScreen() {
                         The Go Chat: {activeRoom.Name}
                     </Typography>
                     
-                    <LoginDialog backendIP={backendIP}/>
+                    <LoginDialog backendIP={backendIP} setToken={setToken}/>
                 </Toolbar>
             </AppBar>
 

@@ -42,10 +42,10 @@ func (action *UserCreate) Process(db *Database) Response {
 // Update action
 type UserUpdate struct {
 	Data struct {
-		SessionID uint64 `json:"sessionId"`
-		Username  string `json:"username"`
-		Password  string `json:"password"`
-		Name      string `json:"name"`
+		Token    string `json:"token"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
 	} `json:"data"`
 }
 
@@ -54,7 +54,7 @@ func (user *User) GetUpdateAction() (DefinedAction, error) {
 }
 
 func (action *UserUpdate) Process(db *Database) Response {
-	err := db.UpdateUser(action.Data.SessionID, action.Data.Username, action.Data.Password, action.Data.Name)
+	err := db.UpdateUser(action.Data.Token, action.Data.Username, action.Data.Password, action.Data.Name)
 	if err != nil {
 		return userResponse("update", false, err.Error())
 	}
@@ -64,7 +64,7 @@ func (action *UserUpdate) Process(db *Database) Response {
 // Delete action
 type UserDelete struct {
 	Data struct {
-		SessionID uint64 `json:"sessionId"`
+		Token string `json:"token"`
 	} `json:"data"`
 }
 
@@ -73,7 +73,7 @@ func (user *User) GetDeleteAction() (DefinedAction, error) {
 }
 
 func (action *UserDelete) Process(db *Database) Response {
-	err := db.DeleteUser(action.Data.SessionID)
+	err := db.DeleteUser(action.Data.Token)
 	if err != nil {
 		return userResponse("delete", false, err.Error())
 	}
@@ -93,7 +93,7 @@ func (m *User) GetLoginAction() (DefinedAction, error) {
 }
 
 func (action *UserLogin) Process(db *Database) Response {
-	sessionId, err := db.LoginUser(action.Data.Username, action.Data.Password)
+	token, err := db.LoginUser(action.Data.Username, action.Data.Password)
 	if err != nil {
 		return userResponse("login", false, err.Error())
 	}
@@ -103,7 +103,7 @@ func (action *UserLogin) Process(db *Database) Response {
 		ObjectName: "user",
 		Success:    true,
 		Status:     "Successfully logged in",
-		SessionID:  sessionId,
+		Token:      token,
 	}
 }
 
