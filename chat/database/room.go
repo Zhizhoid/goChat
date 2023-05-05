@@ -6,52 +6,6 @@ import (
 
 type Room struct{}
 
-// func NewRoom(id uint64, name string) *Room {
-// 	var room Room
-
-// 	room.ID = id
-// 	room.Name = name
-
-// 	room.messages = make([]*Message, 1)
-
-// 	return &room
-// }
-
-func (room *Room) SendMessage(content Content, senderId, replyToId uint64) {
-	// room.messages = append(room.messages, &Message{
-	// 	Content:   content,
-	// 	SentAt:    time.Now(),
-	// 	AuthorID:  senderId,
-	// 	ReplyToID: replyToId,
-	// 	Edited:    false,
-	// })
-}
-
-func (room *Room) UpdateMessage(messageId uint64, newContent Content, newReplyToId uint64) error {
-	// if messageId >= uint64(len(room.messages)) {
-	// 	return errors.New("Invalid message ID")
-	// }
-
-	// if newReplyToId >= messageId {
-	// 	newReplyToId = 0
-	// }
-
-	// room.messages[messageId].Content = newContent
-	// room.messages[messageId].ReplyToID = newReplyToId
-	// room.messages[messageId].Edited = true
-
-	return nil
-}
-
-func (room *Room) DeleteMessage(messageId uint64) error {
-	// if messageId >= uint64(len(room.messages)) {
-	// 	return errors.New("Invalid message ID")
-	// }
-
-	// room.messages[messageId] = nil
-	return nil
-}
-
 // Create action TOCHECK
 type RoomCreate struct {
 	Data struct {
@@ -158,7 +112,7 @@ func (action *Room) GetReadAction() (DefinedAction, error) {
 }
 
 func (action *RoomRead) Process(db *Database) Response {
-	return Response{}
+	return roomResponse("read", false, "Unimplemented")
 }
 
 // OTHER

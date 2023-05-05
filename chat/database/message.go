@@ -32,7 +32,7 @@ func (action *MessageCreate) Process(db *Database) Response {
 	fmt.Printf("Sending message %v\n", action.Data)
 
 	if action.Data.Content.IsEmpty() {
-		return messageResponse("create", false, "Sending message failed, message cannon be empty")
+		return messageResponse("create", false, "A message cannon be empty")
 	}
 
 	err := db.SendMessage(action.Data.Content, action.Data.SenderID, action.Data.RoomID, action.Data.ReplyToID)

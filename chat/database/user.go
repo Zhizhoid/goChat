@@ -110,7 +110,7 @@ func (action *UserLogin) Process(db *Database) Response {
 // Read action
 type UserRead struct {
 	Data struct {
-		Username    string `json:"username"`
+		Token       string `json:"token"`
 		GetRoomList bool   `json:"getRoomList"`
 	} `json:"data"`
 }
@@ -120,42 +120,33 @@ func (action *User) GetReadAction() (DefinedAction, error) {
 }
 
 func (action *UserRead) Process(db *Database) Response {
-	if !action.Data.GetRoomList {
-		name, err := db.ReadUser(action.Data.Username)
-		if err != nil {
-			return userResponse("read", false, err.Error())
-		}
-
-		return Response{
-			Action:     "read",
-			ObjectName: "user",
-			Success:    true,
-			Status:     "Successfully read user",
-			ReadResponse: ReadResponse{
-				UserReadResponse: UserReadResponse{
-					Name:     name,
-					Username: action.Data.Username,
-				},
-			},
-		}
+	response := Response{
+		Action:     "read",
+		ObjectName: "user",
+		Success:    true,
+		Status:     "Successfully read user",
+		ReadResponse: ReadResponse{
+			UserReadResponse: UserReadResponse{},
+		},
 	}
 
-	rooms, err := db.ReadUserRooms(action.Data.Username)
+	username, name, err := db.ReadUser(action.Data.Token)
 	if err != nil {
 		return userResponse("read", false, err.Error())
 	}
 
-	return Response{
-		Action:     "read",
-		ObjectName: "user",
-		Success:    true,
-		Status:     "Successfully read user rooms",
-		ReadResponse: ReadResponse{
-			UserReadResponse: UserReadResponse{
-				Rooms: rooms,
-			},
-		},
+	response.ReadResponse.UserReadResponse.Name = name
+
+	if action.Data.GetRoomList {
+		rooms, err := db.ReadUserRooms(username)
+		if err != nil {
+			return userResponse("read", false, err.Error())
+		}
+
+		response.ReadResponse.UserReadResponse.Rooms = rooms
 	}
+
+	return response
 }
 
 // OTHER

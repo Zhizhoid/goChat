@@ -3,6 +3,7 @@ package database
 import (
 	"chat/safety"
 	"chat/safety/jwt"
+	"time"
 
 	"database/sql"
 	"encoding/base64"
@@ -20,6 +21,7 @@ const ARGON_MEMORY uint32 = 47104
 const ARGON_THREADS uint8 = 1
 
 const JWT_KEY string = "secret_key" //PLACEHOLDER
+const TOKEN_LIFETIME time.Duration = time.Minute * 30
 
 type Database struct {
 	sqlDB *sql.DB
@@ -194,7 +196,7 @@ func (db *Database) DeleteUser(token string) error {
 	}
 
 	q := "DELETE FROM users WHERE Username = ?;"
-	_, err = db.sqlDB.Query(q, username)
+	_, err = db.sqlDB.Exec(q, username)
 	if err != nil {
 		return err
 	}
@@ -234,15 +236,40 @@ func (db *Database) LoginUser(username string, password string) (string, error) 
 		}
 	}
 
-	return jwt.GenerateJWT(username, SESSION_LIFETIME_SECONDS, JWT_KEY)
+	return jwt.GenerateJWT(username, TOKEN_LIFETIME, JWT_KEY)
 }
 
-func (db *Database) ReadUser(username string) (name string, err error) {
-	return "", errors.New("Unimplemented")
+func (db *Database) ReadUser(token string) (username string, name string, err error) {
+	username, err = jwt.SimpleDecode(token, JWT_KEY)
+	if err != nil {
+		return
+	}
+
+	q := "SELECT `Name` FROM users WHERE Username = ?;"
+	row := db.sqlDB.QueryRow(q, username)
+	err = row.Scan(&name)
+
+	return
 }
 
 func (db *Database) ReadUserRooms(username string) (rooms []string, err error) {
-	return nil, errors.New("Unimplemented")
+	q := "SELECT rooms.`Name` FROM rooms INNER JOIN users_rooms INNER JOIN users ON users_rooms.UserID = users.id ON rooms.id = users_rooms.RoomID WHERE users.Username = ?;"
+	rows, err := db.sqlDB.Query(q, username)
+	if err != nil {
+		return
+	}
+
+	var roomName string
+	for rows.Next() {
+		err = rows.Scan(&roomName)
+		if err != nil {
+			return nil, err
+		}
+
+		rooms = append(rooms, roomName)
+	}
+
+	return
 }
 
 // Room

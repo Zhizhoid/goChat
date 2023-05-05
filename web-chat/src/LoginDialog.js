@@ -67,7 +67,7 @@ export default function LoginDialog(props) {
 
 			return resp.json();
 		}).then(data => {
-			console.log(data);
+			// console.log(data);
 			
 			if(!data.success) {
 				alert("Login failed\nMaybe the username or the password is invalid");

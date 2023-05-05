@@ -51,7 +51,7 @@ export default function LoginDialog(props) {
 				username: username,
 				password: password,
                 name: name,
-			}
+			},
 		}
 
 		fetch(props.backendIP.concat("/"), {
@@ -60,7 +60,7 @@ export default function LoginDialog(props) {
 			cache: 'no-cache', 
 			credentials: 'same-origin', 
 			headers: {
-			  	'Content-Type': 'application/json'
+				'Content-Type': 'application/json'
 			},
 			redirect: 'follow', 
 			referrerPolicy: 'no-referrer', 
@@ -72,8 +72,6 @@ export default function LoginDialog(props) {
 
 			return resp.json();
 		}).then(data => {
-			console.log(data);
-			
 			if(!data.success) {
 				alert("Registration failed\nMaybe the username or the password are already used or empty");
 			} else {

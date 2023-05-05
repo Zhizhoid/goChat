@@ -4,7 +4,6 @@ import (
 	"chat/database"
 	"io"
 	"log"
-	"net"
 	"net/http"
 )
 
@@ -46,49 +45,9 @@ func HTTPHandler(w http.ResponseWriter, req *http.Request) {
 		responseBytes := db.HandleRequest(bytes)
 		_, err = w.Write(responseBytes)
 	case "OPTIONS":
-
 		w.WriteHeader(http.StatusNoContent)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 
-}
-
-func handleTCP() {
-	listener, err := net.Listen("tcp", adress)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Started listening on %v\n", adress)
-
-	for {
-		conn, err := listener.Accept()
-		log.Printf("Accepted connction from %v\n", conn.RemoteAddr())
-		if err != nil {
-			log.Println("An error occured: ", err)
-		}
-
-		go handleConnection(conn)
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	buf := make([]byte, 2000)
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			log.Println("An error occured: ", err)
-			break
-		}
-
-		responseBytes := db.HandleRequest(buf[:n])
-		n, err = conn.Write(responseBytes)
-
-		if err != nil {
-			log.Println("An error occured: ", err)
-			break
-		} else {
-			log.Printf("Wrote %v bytes to %v", n, conn.LocalAddr().String())
-		}
-	}
 }
